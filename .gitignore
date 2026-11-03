@@ -1,0 +1,24 @@
+# LaTeX build artifacts
+paper/_build/
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# local paper sources, not part of this repo
+paper/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Node (website)
+node_modules/

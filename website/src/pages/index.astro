@@ -1,0 +1,467 @@
+---
+import Figure from '../components/ResearchFigure.astro';
+import Table from '../components/ResearchTable.astro';
+import BarChart from '../components/BarChart.astro';
+import refinedClips from '../data/refined-clips.json';
+import '../styles/primesim.css';
+import '../styles/theme.css';
+import '../styles/showcase-motion.css';
+import '../styles/fewshot-videos.css';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+
+// Astro's configured site and base keep metadata aligned with the deployed URL.
+const site = new URL(base, Astro.site ?? Astro.url).href;
+const ogImage = new URL('og.png', site).href;
+
+const paperTitle = 'PrimeSim: A Generalist World Model Simulator from Large-Scale Cross-Embodiment Demonstrations';
+
+// Add personal pages when confirmed. The paper carries no equal-contribution or
+// corresponding-author marks.
+const authors = [
+  { name: 'Travis Davies', mark: '1' },
+  { name: 'Wentao Ma', mark: '1,2' },
+  { name: 'Lihao Guo', mark: '1,3' },
+  { name: 'Tengfei Ma', mark: '1,4' },
+  { name: 'Xiaowen Chang', mark: '1,5' },
+  { name: 'Jiafeng Xu', mark: '7' },
+  { name: 'Shilong Wang', mark: '1,3,8' },
+  { name: 'Yiqi Deng', mark: '1,6' },
+  { name: 'Shaowen He', mark: '1,7' },
+  { name: 'Xiaoqi Li', mark: '1,7' },
+  { name: 'Qian Zhu', mark: '1' },
+  { name: 'Ran Cheng', mark: '1' },
+  { name: 'Hao Dong', mark: '1,7' },
+];
+const citationAuthors = ['Davies, Travis', 'Ma, Wentao', 'Guo, Lihao', 'Ma, Tengfei', 'Chang, Xiaowen', 'Xu, Jiafeng', 'Wang, Shilong', 'Deng, Yiqi', 'He, Shaowen', 'Li, Xiaoqi', 'Zhu, Qian', 'Cheng, Ran', 'Dong, Hao'];
+
+const abstract = [
+  'A robot world model that serves as a simulator must do more than generate plausible videos: it must faithfully follow commanded actions, maintain consistency across camera views, and sustain coherent long-horizon rollouts. We present PrimeSim, an action-conditioned, multiview world model simulator that addresses these challenges through progressive midtraining and posttraining.',
+  'Starting from a pretrained video generator, we midtrain on 30,110 hours of robot demonstrations spanning 22 platforms. To improve action following, we introduce a unified cross-embodiment action representation and frame-aligned dual-path conditioning to strengthen action–frame correspondence. To maintain multiview consistency, we develop view-aware interleaved attention with explicit camera identities, enabling cross-view information exchange while preserving view-specific representations.',
+  'We further introduce a fast-video, slow-memory posttraining framework that transforms the bidirectional video generator into an efficient autoregressive simulator. By combining fast causal generation, self-rollout training, and hierarchical temporal memory, PrimeSim mitigates error accumulation from self-generated histories and supports coherent long-horizon simulation.',
+  'PrimeSim runs at 10.1 FPS, maintains coherent rollouts for up to 105 seconds across rigid and deformable manipulation tasks, and transfers to held-out platforms within 100 to 200 gradient steps where the pretrained backbone does not. Against five open-source action-conditioned world models it leads four of the five WorldSimProbe suites and posts the best overall EWMBench score, while fine-grained local calibration still trails the field; its rollouts are faithful enough to support GRPO-based policy optimization. We release the model weights, inference code, and training code.',
+];
+
+const robots = [
+ { id: 'xarm', name: 'xArm 7', form: '7-DoF single arm', steps: 200 },
+ { id: 'viper', name: 'ViperX 300', form: 'Bimanual', steps: 100 },
+ { id: 'umi', name: 'UMI gripper', form: 'Handheld', steps: 200 },
+];
+// Shuffle with a fixed seed so each rollout keeps its display number across visits.
+const shuffledClips = [...refinedClips];
+let showcaseSeed = 0x5052494e;
+for (let i = shuffledClips.length - 1; i > 0; i--) {
+  showcaseSeed = (Math.imul(showcaseSeed, 1664525) + 1013904223) >>> 0;
+  const j = showcaseSeed % (i + 1);
+  [shuffledClips[i], shuffledClips[j]] = [shuffledClips[j], shuffledClips[i]];
+}
+const showcaseClips = shuffledClips.map((clip, index) => ({ ...clip, src: `${base}videos/refined/${clip.file}`, poster: `${base}videos/refined/${clip.poster}`, label: `Rollout ${String(index + 1).padStart(2,'0')}` }));
+
+// LIBERO rollouts driven by commands that differ from the recorded trajectory.
+const counterfactualClips = [1, 2, 3, 4, 5].map(n => {
+  const id = `cf-${String(n).padStart(2, '0')}`;
+  return { id, src: `${base}videos/counterfactual/${id}.mp4`, poster: `${base}videos/counterfactual/${id}.webp`, label: `Counterfactual ${String(n).padStart(2, '0')}` };
+});
+const citation = `% Provisional BibTeX: publication year, venue and URL are not confirmed.
+% The doubled braces around {PrimeSim} stop BibTeX styles from lowercasing it.
+@misc{primesim,
+  title = {{PrimeSim}: A Generalist World Model Simulator from Large-Scale Cross-Embodiment Demonstrations},
+  author = {Davies, Travis and Ma, Wentao and Guo, Lihao and Ma, Tengfei and Chang, Xiaowen and Xu, Jiafeng and Wang, Shilong and Deng, Yiqi and He, Shaowen and Li, Xiaoqi and Zhu, Qian and Cheng, Ran and Dong, Hao},
+  note = {Publication details pending}
+}`;
+---
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{paperTitle}</title>
+  <meta name="description" content="PrimeSim turns a pretrained video generator into an action-conditioned, multiview, causal simulator of robot manipulation. Midtrained on 30,110 hours across 22 platforms; 10.1 FPS at four sampling steps." />
+  <link rel="canonical" href={site} />
+  <meta name="theme-color" content="#f6f7f2" />
+  <script is:inline>
+    (() => {
+      const key = 'primesim-theme';
+      let preference = null;
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved === 'light' || saved === 'dark') preference = saved;
+      } catch { /* Theme switching also works when storage is unavailable. */ }
+
+      function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#111310' : '#f6f7f2');
+        const button = document.getElementById('theme-toggle');
+        if (button) {
+          const label = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+          button.setAttribute('aria-label', label);
+          button.setAttribute('title', label);
+          button.setAttribute('aria-pressed', String(theme === 'dark'));
+          button.hidden = false;
+        }
+      }
+
+      // Set the palette before the first paint to avoid a theme flash.
+      applyTheme(preference ?? 'light');
+      document.addEventListener('DOMContentLoaded', () => {
+        applyTheme(document.documentElement.dataset.theme);
+        document.getElementById('theme-toggle')?.addEventListener('click', () => {
+          preference = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          applyTheme(preference);
+          try { localStorage.setItem(key, preference); } catch { /* Keep the current session's choice. */ }
+        });
+      }, { once: true });
+    })();
+  </script>
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="PrimeBot Research" />
+  <meta property="og:title" content="PrimeSim: A Generalist World Model Simulator" />
+  <meta property="og:description" content="Action-conditioned robot simulation. Three views, four sampling steps, 100–200 gradient steps for held-out robot adaptation." />
+  <meta property="og:url" content={site} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="PrimeSim: A Generalist World Model Simulator" />
+  <meta name="twitter:description" content="Action-conditioned robot simulation. Three views, four sampling steps, 100–200 gradient steps for held-out robot adaptation." />
+  <meta name="twitter:image" content={ogImage} />
+
+  <!-- Highwire metadata: lets Google Scholar index this page as the paper's record. -->
+  <meta name="citation_title" content={paperTitle} />
+  {citationAuthors.map(a => <meta name="citation_author" content={a} />)}
+  <meta name="citation_publication_date" content="2026" />
+  <meta name="citation_fulltext_html_url" content={site} />
+  <meta name="citation_language" content="en" />
+
+  <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+</head>
+<body id="top">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><a class="wordmark" href="#top"><span class="brand-symbol" aria-hidden="true">P<span>′</span></span>PrimeBot <span class="research">/ Research</span></a><nav aria-label="Main navigation"><a href="#abstract">Abstract</a><a href="#showcase">Showcase</a><a href="#method">Method</a><a href="#results">Results</a><a href="#citation">Cite ↗</a></nav><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch color theme" aria-pressed="false" hidden><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z" /></svg><span class="theme-label-light">Light</span><span class="theme-label-dark">Dark</span></button><div class="scroll-progress" aria-hidden="true"><i id="scroll-bar"></i></div></header>
+<main id="main">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="eyebrow"><span class="dot"></span> PRIMEBOT RESEARCH <span class="edition">WORLD MODEL / PRIMESIM</span></div>
+  <div class="wordmark-mask"><p class="brand-display" id="hero-title">Prime<span>Sim</span><span class="title-dot">.</span></p></div>
+  <h1 class="paper-title">A Generalist World Model Simulator<br />from Large-Scale Cross-Embodiment Demonstrations</h1>
+  <p class="hero-summary">From actions to visual consequences.<br class="desktop" /> A video backbone, reworked into an action-conditioned,<br class="desktop" /> multiview, causal simulator of robot manipulation.</p>
+  <div class="hero-preview" aria-label="One generated rollout across three camera views">
+    <div class="hero-preview-topline"><span><i aria-hidden="true"></i> ONE ROLLOUT / THREE VIEWS</span><button id="hero-playback" type="button" hidden aria-label="Play preview">Play preview <span aria-hidden="true">▶</span></button></div>
+    <div class="hero-preview-screen">
+      <video id="hero-video" src={`${base}videos/hero-three-views-31.mp4`} poster={`${base}videos/posters/hero-three-views-31.webp`} width="768" height="192" muted loop playsinline preload="none" aria-label="Head, left-hand and right-hand camera views of a generated manipulation rollout"></video>
+      <div class="camera-reveals" aria-hidden="true">{['HEAD','LEFT HAND','RIGHT HAND'].map((label, i) => <div style={`--camera-index:${i}`}><span>{label}</span></div>)}</div>
+    </div>
+  </div>
+  <div class="authors">{authors.map(a => <span class="author">{a.name}<sup>{a.mark}</sup></span>)}</div>
+  <p class="affiliations">¹ PrimeBot Research &nbsp; ² Southeast University &nbsp; ³ Shanghai Jiao Tong University<br />⁴ The Chinese University of Hong Kong &nbsp; ⁵ University of Chinese Academy of Sciences &nbsp; ⁶ Beihang University<br />⁷ Peking University &nbsp; ⁸ Shanghai Innovation Institute</p>
+  <p class="correspondence">Correspondence: <a href="mailto:travisdavies@qiyuan-robot.com">travisdavies@qiyuan-robot.com</a></p>
+  <div class="resources">
+    <span class="unavailable-resource" aria-label="arXiv link pending">arXiv <small>Pending</small></span>
+    <span class="unavailable-resource" aria-label="Code link pending">Code <small>Pending</small></span>
+    <span class="unavailable-resource" aria-label="Weights link pending">Weights <small>Pending</small></span>
+    <a href="#citation">BibTeX <span>↗</span></a>
+  </div>
+  <p class="release-note">arXiv, code and weights links will be added at release.</p>
+  <a class="explore-link" href="#overview"><span>Explore the research</span><span aria-hidden="true">↓</span></a>
+</section>
+<section class="hero-visual wide" id="overview" aria-label="PrimeSim overview">
+  <div class="figure-topline"><span>00 / OVERVIEW</span><span>DATA · TRAINING · CAPABILITIES</span></div>
+  <Figure file="primesim_teaser.png" priority alt="Three-panel overview: curated mid-training corpus across 22 platforms, the PrimeSim training and autoregressive post-training pipeline, and demonstrated capabilities including fidelity against prior systems, action following, few-shot unseen embodiment and world-model-as-simulator." caption="PrimeSim at a glance. (a) Midtraining corpus: roughly 30.1K hours of curated robot data spanning humanoid, dual-arm, single-arm and handheld UMI platforms, mixing real and simulated footage. (b) The model is conditioned on a language prompt, a unified action representation over head, torso, waist, end-effector, gripper and chassis, and three camera views, and predicts future frames; post-training makes generation autoregressive with a selected KV-cache memory at four denoising steps. (c) Capabilities: fidelity against prior systems, action following measured against simulation ground truth, few-shot adaptation to an unseen embodiment, and use as a simulator — success rate in PrimeSim predicts success rate in the LIBERO physics simulator with r = 0.99." />
+</section>
+<section class="metrics wide" aria-label="Key results">
+  <div><span class="metric-label">ROBOT DEMONSTRATION DATA</span><strong>30,110<span> h</span></strong><p>Across 22 robot platforms</p></div>
+  <div><span class="metric-label">FEW-STEP GENERATION</span><strong>4<span> steps / </span>10<span> Hz</span></strong><p>Three synchronized views · single A100 · 288 × 384 / view</p></div>
+  <div><span class="metric-label">HELD-OUT ROBOT ADAPTATION</span><strong>100–200<span> steps</span></strong><p>Gradient steps to action-following rollouts</p></div>
+</section>
+<section class="data-scale wide" id="data" aria-label="Training data scale">
+  <div class="figure-topline"><span>DATA SCALE</span><span>30,110 HOURS · 22 PLATFORMS · 84% REAL ROBOT</span></div>
+  <Figure file="data4.png" alt="Distribution of the PrimeSim demonstration corpus." caption="Training corpus distribution · 30,110 hours, 2.38B frames and 1.52M episodes from 1,773 repositories over 22 robot platforms, at an 84:16 real-to-simulated ratio across humanoid, dual-arm, single-arm, UMI and simulation sources. The corpus mixes open-source and proprietary demonstrations." />
+</section>
+<section class="section abstract" id="abstract" aria-labelledby="abstract-label">
+  <div class="section-heading"><span class="section-number" id="abstract-label">ABSTRACT</span></div>
+  <div class="abstract-body">{abstract.map(p => <p>{p}</p>)}</div>
+  <p class="abstract-meta">PrimeBot Research · 2026 · Full paper pending on arXiv · <a href="#citation">BibTeX</a></p>
+</section>
+<section class="section showcase" id="showcase">
+  <div class="section-heading"><span class="section-number">00 / SHOWCASE</span><h2>Generated rollouts.<br /><em>Action in, video out.</em></h2></div>
+  <div class="showcase-block">
+    <div class="video-grid video-grid-refined">{showcaseClips.map(c => <figure class="clip"><video src={c.src} poster={c.poster} width={c.width} height={c.height} muted loop playsinline preload="none" aria-label={c.label}></video><figcaption><span>{c.label}</span><span>GENERATED</span></figcaption></figure>)}</div>
+  </div>
+  <h3 id="transfer">Few-shot adaptation</h3>
+  <p class="intro-text">On three held-out platforms, the midtrained model reaches action-following rollouts within 100–200 gradient steps at a learning rate of 3 × 10⁻⁵. The pretrained Wan2.2 backbone does not reach this behavior within the 2,000-step budget.</p>
+  <div class="robot-tabs" role="tablist" aria-label="Select a held-out robot">{robots.map((r,i) => <button role="tab" id={`tab-${r.id}`} aria-controls={`panel-${r.id}`} aria-selected={i===0 ? 'true' : 'false'} tabindex={i===0 ? 0 : -1} data-robot={r.id}>{r.name}<span>{r.form}</span></button>)}</div>
+  <div class="robot-panels">
+  {robots.map((r,i) => <div role="tabpanel" id={`panel-${r.id}`} aria-labelledby={`tab-${r.id}`} hidden={i!==0} tabindex="0">
+    <div class="fewshot-comparison" data-robot-name={r.name}>
+      <div class="fewshot-toolbar"><span>Three views per video</span><button type="button" data-comparison-playback hidden aria-label={`Play ${r.name} comparison`}>Play comparison ▶</button></div>
+      <div class="fewshot-grid">
+        {[
+          { file: 'ground_truth', label: 'Ground truth', detail: 'Reference trajectory', primary: false },
+          { file: 'primesim', label: 'PrimeSim', detail: `${r.steps} gradient steps`, primary: true },
+          { file: 'wan', label: 'Wan2.2-5B', detail: '2,000 gradient steps', primary: false },
+        ].map(method => <figure class:list={['fewshot-card', { 'fewshot-primary': method.primary }]}>
+          <figcaption><strong>{method.label}</strong>{method.primary ? <span class="fewshot-steps"><b>{r.steps}</b><small>gradient steps</small></span> : <span>{method.detail}</span>}</figcaption>
+          <video src={`${base}videos/few-shot/${r.id}/${method.file}.mp4`} poster={`${base}videos/few-shot/${r.id}/${method.file}.webp`} width="256" height="576" muted loop playsinline preload="none" aria-label={`${r.name} · ${method.label}`}></video>
+        </figure>)}
+      </div>
+      <p class="fewshot-scroll-hint">Swipe to compare all three videos →</p>
+    </div>
+  </div>)}
+  </div>
+  <Table label="Held-out embodiment adaptation" headers={['Platform','Morphology','Midtrained steps','Pretrained steps']} rows={robots.map(r=>[r.name,r.form,r.steps,'2,000 · not reached'])} />
+  <h3 id="zero-shot">Zero-shot transfer</h3>
+  <p class="intro-text">Each video shows a ground-truth trajectory on the left and a zero-shot generated rollout on the right. No gradient steps were used for these outputs.</p>
+  <Table label="Zero-shot transfer · held-out dataset, 192 × 256, three views" headers={['Data','Regime','PSNR ↑','SSIM ↑','LPIPS ↓']} rows={[
+    ['XR2','in-distribution','19.79 ± 1.64','0.731 ± 0.053','0.192 ± 0.052'],
+    ['XVLA','zero-shot','15.82 ± 2.24','0.762 ± 0.049','0.297 ± 0.072'],
+    ['Δ','','−3.97','+0.031','+0.105'],
+  ]} />
+  <p class="note">Both rows share the same checkpoint and sampler (50 steps, seed 42); only the data differs. XR2 uses held-out episodes of repositories seen in pre-training; XVLA is excluded and differs in scene, garments and camera placement. Means ± std over eight validation windows. SSIM is not comparable across the two datasets, so read PSNR and LPIPS as the degradation. Finetuning for 200 steps at batch size 1 recovers most of the gap.</p>
+  <div class="scene-video-grid">
+    {[
+      { file: 'zero-shot-01.mp4', poster: 'zero-shot-01.webp', label: 'Zero-shot 01' },
+      { file: 'zero-shot-02.mp4', poster: 'zero-shot-02.webp', label: 'Zero-shot 02' },
+      { file: 'zero-shot-03.mp4', poster: 'zero-shot-03.webp', label: 'Zero-shot 03' },
+      { file: 'zero-shot-04.mp4', poster: 'zero-shot-04.webp', label: 'Zero-shot 04' },
+    ].map((clip, i) => <figure class="fewshot-card scene-video-card">
+      <figcaption><div><strong>{clip.label}</strong><span>Ground truth ← · → Generated</span></div><button type="button" data-inline-video-toggle data-video-label={`${clip.label.toLowerCase()} video`} aria-controls={`zero-shot-video-${i}`} aria-label={`Play ${clip.label.toLowerCase()} video`} hidden>Play ▶</button></figcaption>
+      <video id={`zero-shot-video-${i}`} data-ambient-video src={`${base}videos/zero-shot/${clip.file}`} poster={`${base}videos/zero-shot/${clip.poster}`} width="512" height="576" muted loop playsinline preload="none" aria-label={`${clip.label} · ground truth left, generated right`}></video>
+    </figure>)}
+  </div>
+</section>
+<section class="section" id="method">
+  <div class="section-heading"><span class="section-number">01 / METHOD</span><h2>From video prior<br /><em>to causal simulator.</em></h2></div>
+  <div class="curriculum"><article><span>01</span><h3>Pretrain</h3><p>Initialize from Wan2.2-TI2V-5B. This stage reuses the pretrained weights without additional training.</p></article><article><span>02</span><h3>Midtrain</h3><p>Learn action and multiview conditioning on 30,110 hours of robot demonstrations. Frame-aligned dual-path conditioning strengthens action–frame correspondence; view-aware interleaved attention with explicit camera identities exchanges information across views while preserving view-specific representations.</p></article><article><span>03</span><h3>Posttrain</h3><p>Turn the model into a causal, few-step generator. Use rank-32 LoRA with a frozen backbone.</p></article></div>
+  <Figure file="architecture.png" alt="PrimeSim architecture diagram showing the action-conditioned multiview decoder." caption="Model architecture · explicit action conditioning and joint multiview generation." />
+  <ol class="posttrain">
+    <li><span>STAGE 1</span>Autoregressive</li>
+    <li><span>STAGE 2</span>Causal consistency distillation</li>
+    <li><span>STAGE 3</span>Clip self-rollout + asymmetric DMD</li>
+    <li><span>STAGE 4</span>Episode long-horizon adaptation</li>
+  </ol>
+  <p class="note">A 50-step teacher is distilled to a 4-step student, cutting latency roughly 9×. Stage-4 hierarchical temporal memory keeps a bounded KV cache of 21 latent slots: global sink 3, slow memory 9, local memory 9.</p>
+</section>
+<section class="section" id="results">
+  <div class="section-heading"><span class="section-number">02 / RESULTS</span></div>
+  <div class="leaderboard">
+    <Figure file="leaderboard-top1.png" maxWidth={3200} alt="Leaderboard summary: PrimeSim ranks first on EWMBench with 6.09 out of 8 and first on WorldSimProbe over LIBERO, ahead of GE-Sim, Thinker-WM, Qwen-RobotWorld, ZIBRA, Ctrl-World, LingBot-VA, Cosmos-3-Nano, DreamDojo and IRASim." caption="Leaderboard summary · PrimeSim ranks first on both benchmarks. Per-dimension tables follow." />
+  </div>
+  <h3 id="benchmarks">Benchmark evaluation</h3>
+  <div class="results-intro results-intro--text"><div><h3>WorldSimProbe</h3><p>Against five open-source action-conditioned world models, first on four of five suites: global trajectory coverage (+10.0% over the strongest competitor), action-source behavior preservation (+41.8%), and interaction dynamics (+48.4%), with interaction grounding also led at 85.7 against Ctrl-World’s 77.5.</p><p class="note">Fine-grained local calibration still trails: T1 is 70.2 versus LingBot-VA’s 77.0.</p></div></div>
+  <div class="worldsimprobe-row">
+    <Figure file="libero-radar.png" maxWidth={760} alt="WorldSimProbe radar over five suites: PrimeSim leads global trajectory coverage, action-source behavior preservation, interaction grounding and interaction dynamics, while LingBot-VA leads local action calibration." caption="Radar · models leading at least one axis" />
+    <Table label="WorldSimProbe · five-suite breakdown" headers={['Suite','Measure','PrimeSim','Best result']} rows={[
+      ['T1','Local action calibration','70.2','77.0 · LingBot-VA'],['T2','Global trajectory coverage','67.9','67.9 · PrimeSim'],['T3','Action-source behavior preservation','72.3','72.3 · PrimeSim'],['T4','Interaction grounding','85.7','85.7 · PrimeSim'],['T5','Interaction dynamics','37.1','37.1 · PrimeSim']
+    ]} />
+  </div>
+  <h3>EWMBench · official eight-dimension protocol</h3><p>Twenty-one episodes across seven AgiBot World tasks, with multiple rollouts per episode under a fixed action-conditioned protocol and a small family of sampler settings. Overall is the sum of eight dimensions, each in [0, 1]. PrimeSim reaches 6.09, ahead of both GE-Sim variants (5.82 and 5.79) and every instruction-conditioned model, and is best on five of the eight dimensions, including perfect scores on high-level semantics, trajectory alignment and logical consistency. Action semantics (BLEU) is 72.7% above the strongest GE-Sim variant.</p><p class="note">These episodes are in-domain: AgiBot World contributes to the training corpus, and the models compared here are fine-tuned from the midtrained checkpoint on these datasets before scoring. The numbers therefore measure how well the architecture absorbs an in-domain benchmark rather than zero-shot transfer to it; held-out platforms are evaluated separately under few-shot adaptation.</p>
+  <BarChart label="EWMBench overall score for action-conditioned systems" group="OVERALL · SUM OF EIGHT DIMENSIONS · ACTION-CONDITIONED ONLY" decimals={2} rows={[
+    { label: 'PrimeSim', value: 6.09, hero: true },
+    { label: 'GE-Sim (LTX)', value: 5.82 },
+    { label: 'GE-Sim (COSMOS2)', value: 5.79 },
+    { label: 'Thinker-WM (action)', value: 5.03 },
+  ]} />
+  <Table label="EWMBench · eight dimensions, 21-episode split" headers={['Method','SceneC','HSD','Dyn','nDTW','Div','BLEU','CLIP','Logics','Overall']} highlight={3} rows={[
+    ['GE-Sim (LTX)','0.900','0.940','0.780','0.980','0.011','0.330','0.908','0.970','5.82'],
+    ['GE-Sim (COSMOS2)','0.910','0.870','0.850','0.970','0.010','0.310','0.902','0.970','5.79'],
+    ['Thinker-WM (action-cond.) †','—','0.737','0.364','0.874','—','—','—','—','5.03'],
+    ['PrimeSim','0.887','1.000','0.666','1.000','0.010','0.570','0.954','1.000','6.09']
+  ]} />
+  <p class="note">These quality results use 50 denoising steps at CFG 1.5, generating at 192 × 256 and scoring the head-camera stream at 480 × 640. The throughput results below use the four-step distilled Stage-3 sampler.</p>
+  <p class="note">† Only motion dimensions and Overall are reported for this variant. The paper also lists six instruction- or text-conditioned models (EnerVerse-FT 4.70, Thinker-WM 4.66, Qwen-RobotWorld 4.60, LVP 4.05, Sora2 3.89, Kling26 3.85) in a separate block, which is not iso-protocol with action-conditioned models.</p>
+  <h3>Inference throughput</h3>
+  <Table label="Inference throughput · single A100-80GB, bfloat16, steady state" headers={['Model','Views','Res. / view','Future T','Steps','TempFPS ↑','ViewFPS ↑']} highlight={0} rows={[
+    ['PrimeSim · Stage 3','3','288 × 384','32 (33)','4','10.12','30.35'],
+    ['GE-Sim 2.0','3','384 × 512','25','4','2.24','6.73'],
+    ['BWM · fair-aligned','1','384 × 512','25','50','4.04','4.04'],
+    ['Ctrl-World','3','192 × 320','5','50','0.87','2.60'],
+    ['BWM · official','1','672 × 896','48','50','0.75','0.75'],
+    ['CausalWM ‡','1','480 × 640','25','4+4+4','0.66','0.66']
+  ]} />
+  <p class="note">TempFPS counts rollout time steps per second (Hz); ViewFPS sums frames across camera views. The chart below uses Hz for every model; PrimeSim’s 10.12 Hz is shown rounded to 10 Hz. Rows are not matched in resolution, horizon or denoising budget. PrimeSim is timed at 288 × 384 per view under the RoboTwin 2.0 Stage-3 contract, a different geometry from the 192 × 256 quality evaluations. Longer continuous-KV episodes measure 7.63 TempFPS. ‡ Text- and first-frame-conditioned, not action-conditioned.</p>
+  <BarChart label="Inference throughput in hertz" group="ROLLOUT FREQUENCY · HZ · SINGLE A100-80GB · STEADY STATE" decimals={2} unit=" Hz" rows={[
+    { label: 'PrimeSim · Stage 3', value: 10.12, displayValue: '10', hero: true },
+    { label: 'BWM · fair-aligned', value: 4.04 },
+    { label: 'GE-Sim 2.0', value: 2.24 },
+    { label: 'Ctrl-World', value: 0.87 },
+    { label: 'BWM · official', value: 0.75 },
+    { label: 'CausalWM', value: 0.66 },
+  ]} />
+  <h3>Fewer sampling steps, with a quality trade-off</h3>
+  <Table label="Distillation ablation · single A100, RoboTwin 2.0 held-out split" headers={['Stage','Steps','FPS ↑','PSNR ↑','SSIM ↑','LPIPS ↓']} highlight={2} rows={[
+    ['Stage 1 · causal AR teacher',50,'1.12','26.15','0.859','0.153'],
+    ['Stage 2 · causal KV consistency distillation',4,'10.04','24.40','0.841','0.193'],
+    ['Stage 3 · asymmetric DMD',4,'10.12','24.87','0.838','0.176']
+  ]} />
+  <p class="note">Relative to the 50-step causal Stage 1 teacher, four-step Stage 3 improves throughput by approximately 9.0×, at a 1.28 dB PSNR cost. Output resolution: 192 × 256 per view; three views generated jointly.</p>
+  <h3>Long-horizon robustness</h3>
+  <p>Evaluated rollouts run 610–1,046 generated frames, or 61.0–104.6 seconds at 10 FPS, with three synchronized views. The abstract reports coherent rollouts for up to 105 seconds across rigid and deformable tasks.</p>
+  <p>Ten episode-level held-out RoboTwin trajectories, initialised from the first ground-truth frame and then conditioned only on the model’s own generated history. Degradation is the first-window score minus the last-window score, sign-corrected so that lower is better for all three metrics.</p>
+  <Table label="Long-horizon generation quality · ten held-out RoboTwin episodes" headers={['Stage','Mean PSNR ↑','Mean SSIM ↑','Mean LPIPS ↓','Δ PSNR ↓','Δ SSIM ↓','Δ LPIPS ↓']} highlight={1} rows={[
+    ['Stage 3 · clip self-rollout','12.572','0.401','0.654','18.305','0.602','0.640'],
+    ['Stage 4 · episode self-rollout','18.709','0.695','0.403','8.427','0.120','0.233']
+  ]} />
+  <p class="note">Episode-level training improves every metric and cuts PSNR degradation from 18.3 dB to 8.4 dB. This is the evidence for the long-horizon claim; without it the claim would rest on architecture alone.</p>
+  <h3>Action representation ablation</h3>
+  <Table label="Action representation · X2W humanoid, from the pretrained checkpoint" headers={['Representation','PSNR ↑','SSIM ↑','LPIPS ↓']} highlight={2} rows={[
+    ['Absolute action','22.23','0.79','0.14'],
+    ['Delta action','21.34','0.81','0.18'],
+    ['Relative action chunk','24.56','0.84','0.13']
+  ]} />
+  <p class="note">All three variants are trained from the pretrained checkpoint rather than the midtrained one, so stronger priors cannot mask the contribution. Single embodiment, so the comparison does not measure cross-embodiment behaviour.</p>
+  <h3 id="policy">Policy evaluation and optimization</h3>
+  <p class="intro-text">Video metrics measure how closely PrimeSim reproduces recorded trajectories. The relevant question for a simulator is whether conclusions drawn inside it carry over: whether it predicts and ranks the success of fixed policies as a physics simulator does, and whether it can serve as the training environment for RL post-training.</p>
+  <Table label="Policy evaluation fidelity · eight OpenVLA-OFT policies, 300 initial states" headers={['Measure','PrimeSim','Wan2.2-FT']} rows={[
+    ['Spearman ρ ↑','1.00','0.90'],
+    ['Pearson r ↑','0.99','0.91'],
+    ['Mean absolute gap (points) ↓','2.8','8.3'],
+    ['Worst per-policy gap (points) ↓','7.0','18.3']
+  ]} />
+  <p class="note">Policies are OpenVLA-OFT after supervised finetuning on LIBERO-Spatial demonstrations, predicting 8-step action chunks from the main camera view. Inside the world model, success is judged by a ResNet-based binary classifier finetuned on LIBERO-Spatial frames: an episode scores 1 if any generated frame is classified as success. PrimeSim orders all eight policies exactly as the simulator does and stays within 7.0 points of it for every policy. Wan2.2-FT tracks the trend but under-estimates the three strongest policies by 12.0, 12.7 and 18.3 points — the regime where checkpoint selection matters.</p>
+  <Table label="Reinforcement learning inside PrimeSim · LIBERO-Spatial, 200 GRPO steps" headers={['Measure','SFT base','After 200 RL steps']} rows={[
+    ['Simulator success','61.7%','73.2%'],
+    ['World-model success','60.1%','71.9%'],
+    ['World model − simulator','−1.6','−1.3']
+  ]} />
+  <p class="note">GRPO runs entirely inside PrimeSim: rollouts are generated closed-loop by the world model and scored by the success classifier, and the physics simulator is never queried during training. Imagined and true success stay within 1.6 points, so the improvement carries over. A short budget and an off-the-shelf classifier make this a demonstration that RL post-training works, not a success-rate claim; longer optimisation risks exploiting world-model or reward errors.</p>
+  <div class="policy-figures" id="policy-figures" role="group" aria-label="Policy evaluation and reinforcement learning figures">
+    <Figure file="wm_rl_correlation.png" surface="paper" pdf={`${base}figures/wm_rl_correlation.pdf`} alt="Policy success rates in PrimeSim and Wan2.2-FT compared with the LIBERO simulator; PrimeSim has Pearson r of 0.99." caption="Policy evaluation · 8 policies, 300 shared initial states. Dotted line: agreement with the simulator." />
+    <Figure file="wm_rl_bar.png" surface="paper" pdf={`${base}figures/wm_rl_bar.pdf`} alt="Published comparison of SFT base and 200-step RL inside PrimeSim: simulator success increases from 61.7% to 73.2%, and world-model success from 60.1% to 71.9%." caption="Success rates · SFT base versus 200 steps of RL inside PrimeSim." />
+    <div class="counterfactual-block">
+      <div class="counterfactual-head">
+        <div><strong>Counterfactual action control</strong><span>LIBERO rollouts driven by commanded actions that differ from the recorded trajectory. Five tasks, three camera views per rollout.</span></div>
+        <button id="counterfactual-playback" type="button">Pause all Ⅱ</button>
+      </div>
+      <div class="counterfactual-grid">
+        {counterfactualClips.map(clip => <figure class="counterfactual-card">
+          <video data-ambient-video src={clip.src} poster={clip.poster} width="256" height="256" muted loop playsinline preload="none" aria-label={`${clip.label} · counterfactual LIBERO rollout`}></video>
+          <figcaption>{clip.label}</figcaption>
+        </figure>)}
+      </div>
+    </div>
+  </div>
+</section>
+<section class="section citation" id="citation">
+  <div class="section-heading"><span class="section-number">03 / CITE</span><h2>BibTeX</h2></div>
+  <p>Provisional citation. Publication year, venue and paper URL are pending confirmation.</p>
+  <div class="code-top"><span>PRIMESIM.BIB · PROVISIONAL</span><button id="copy-citation" type="button">Copy BibTeX ↗</button></div><pre><code id="bibtex">{citation}</code></pre><p id="copy-status" role="status" aria-live="polite"></p>
+</section>
+</main>
+<dialog id="lightbox" aria-label="Figure viewer">
+  <button class="lb-btn lb-close" id="lb-close" type="button" aria-label="Close viewer">✕</button>
+  <button class="lb-btn lb-prev" id="lb-prev" type="button" aria-label="Previous figure">‹</button>
+  <div class="lb-stage"><img id="lb-img" alt="" /></div>
+  <button class="lb-btn lb-next" id="lb-next" type="button" aria-label="Next figure">›</button>
+  <div class="lb-bar"><p id="lb-caption"></p><span id="lb-count"></span></div>
+</dialog>
+<footer><div class="footer-brand">PrimeSim<span>.</span><p>PrimeBot Research</p></div><p>Correspondence: <a href="mailto:travisdavies@qiyuan-robot.com">travisdavies@qiyuan-robot.com</a><br />Adapted from <a href="https://github.com/RomanHauksson/academic-project-astro-template">Roman Hauksson’s academic project template</a> (CC BY-SA 4.0).<br />Editorial layout inspired by <a href="https://shikun.io/projects/clarity">Clarity</a> by Shikun Liu. Research figures and content supplied by the project authors.</p><a href="#top">Back to top ↑</a></footer>
+<script>
+  import '../scripts/showcase-motion';
+  document.getElementById('copy-citation')?.addEventListener('click', async () => {
+    const code = document.getElementById('bibtex'); const status = document.getElementById('copy-status');
+    if (!code || !status) return;
+    try { await navigator.clipboard.writeText(code.textContent || ''); status.textContent = 'BibTeX copied.'; }
+    catch { const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(code); selection?.removeAllRanges(); selection?.addRange(range); status.textContent = 'Clipboard unavailable. Citation selected; press Ctrl+C or ⌘C to copy.'; }
+  });
+
+  // --- reading progress ------------------------------------------------------
+  const bar = document.getElementById('scroll-bar');
+  const onScroll = () => {
+    if (!bar) return;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = max > 0 ? `${Math.min(100, (window.scrollY / max) * 100)}%` : '0%';
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // --- active section in the nav --------------------------------------------
+  const navLinks = Array.from(document.querySelectorAll<HTMLAnchorElement>('nav a[href^="#"]'));
+  const watched = navLinks.map(link => document.querySelector<HTMLElement>(link.hash)).filter((el): el is HTMLElement => Boolean(el));
+  let scrollQueued = false;
+  function updateNavigation() {
+    const readingLine = window.innerHeight * .3;
+    const active = watched.filter(section => section.getBoundingClientRect().top <= readingLine).at(-1);
+    navLinks.forEach(link => {
+      if (active && link.hash === `#${active.id}`) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    });
+    document.querySelector('.site-header')?.classList.toggle('is-scrolled', window.scrollY > 40);
+    scrollQueued = false;
+  }
+  window.addEventListener('scroll', () => {
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(updateNavigation);
+  }, { passive: true });
+  window.addEventListener('resize', updateNavigation);
+  updateNavigation();
+
+  // --- figure lightbox -------------------------------------------------------
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('a.image-link'));
+  const dlg = document.getElementById('lightbox') as HTMLDialogElement | null;
+  const lbImg = document.getElementById('lb-img') as HTMLImageElement | null;
+  const lbCap = document.getElementById('lb-caption');
+  const lbCount = document.getElementById('lb-count');
+  let current = 0;
+
+  function paint(i: number) {
+    if (!lbImg || !links.length) return;
+    current = (i + links.length) % links.length;
+    const a = links[current];
+    const inner = a.querySelector('img');
+    lbImg.src = a.getAttribute('href') || '';
+    lbImg.alt = inner?.alt || '';
+    lbImg.classList.toggle('on-paper', Boolean(a.closest('.paper-figure')));
+    const fig = a.closest('figure');
+    const cap = fig?.querySelector('figcaption');
+    if (lbCap && cap) {
+      const clone = cap.cloneNode(true) as HTMLElement;
+      clone.querySelector('.figure-links')?.remove();
+      lbCap.textContent = clone.textContent?.trim() || '';
+    }
+    if (lbCount) lbCount.textContent = `${current + 1} / ${links.length}`;
+  }
+
+  links.forEach((a, i) => a.addEventListener('click', event => {
+    if (!dlg) return;
+    event.preventDefault();
+    paint(i);
+    dlg.showModal();
+  }));
+
+  dlg?.addEventListener('keydown', event => {
+    if (event.key === 'ArrowRight') { event.preventDefault(); paint(current + 1); }
+    else if (event.key === 'ArrowLeft') { event.preventDefault(); paint(current - 1); }
+  });
+  dlg?.addEventListener('click', event => {
+    if (event.target === dlg) dlg.close();       // backdrop
+  });
+  document.getElementById('lb-close')?.addEventListener('click', () => dlg?.close());
+  document.getElementById('lb-prev')?.addEventListener('click', () => paint(current - 1));
+  document.getElementById('lb-next')?.addEventListener('click', () => paint(current + 1));
+
+  // --- reveal on scroll ------------------------------------------------------
+  // Reveal complete visual blocks so prose keeps a steady reading rhythm.
+  const revealTargets = Array.from(document.querySelectorAll<HTMLElement>(
+    '.section-heading, .hero-visual, .metrics > div, .abstract-body, .section > .research-figure, .curriculum, .results-intro, .limits-grid, .barchart, .policy-figures'
+  ));
+  const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+  if (revealTargets.length && 'IntersectionObserver' in window && !motionPreference.matches) {
+    const reveal = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-in');
+        reveal.unobserve(entry.target);
+      });
+    }, { rootMargin: '0px 0px -24px 0px', threshold: 0.01 });
+    revealTargets.forEach(el => {
+      el.classList.add('reveal');
+      reveal.observe(el);
+    });
+    document.documentElement.classList.add('motion');
+    // Respond if the preference changes while the page is open.
+    motionPreference.addEventListener('change', event => {
+      document.documentElement.classList.toggle('motion', !event.matches);
+    });
+  }
+</script>
+</body></html>

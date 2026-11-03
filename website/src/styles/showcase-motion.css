@@ -1,0 +1,202 @@
+/* Motion preview: isolated from the existing page and color-mode styles. */
+.wordmark-mask {
+  overflow: hidden;
+  margin-inline: -16px;
+  padding: 8px 16px;
+}
+
+.hero > .wordmark-mask {
+  animation: none;
+}
+
+.hero .wordmark-mask .brand-display {
+  margin-block: 18px 0;
+}
+
+.hero-preview {
+  max-width: 800px;
+  margin: 28px auto 36px;
+  text-align: left;
+}
+
+.hero-preview-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+
+.hero-preview-topline > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-preview-topline i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.hero-preview.is-playing .hero-preview-topline i {
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+#hero-playback {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 6px 0 6px 10px;
+}
+
+.hero-preview-screen {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #090b08;
+  box-shadow: 0 20px 65px rgba(0,0,0,.16);
+}
+
+.hero-preview video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 1;
+}
+
+.camera-reveals {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  pointer-events: none;
+}
+
+.camera-reveals > div {
+  position: relative;
+  overflow: hidden;
+}
+
+.camera-reveals > div + div {
+  border-left: 2px solid var(--bg);
+}
+
+.camera-reveals span {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 4px 7px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 4px;
+  background: rgba(9,11,8,.72);
+  color: #f3f5eb;
+  font-size: 9px;
+  letter-spacing: .1em;
+}
+
+@keyframes wordmark-unveil {
+  from { transform: translateY(112%) skewY(3deg); }
+  to { transform: none; }
+}
+
+@keyframes camera-unveil {
+  from { transform: translateY(0); }
+  to { transform: translateY(-101%); }
+}
+
+@keyframes preview-arrive {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media(prefers-reduced-motion:no-preference) {
+  .hero .brand-display {
+    animation: wordmark-unveil 1s cubic-bezier(.16,1,.3,1) both;
+  }
+
+  .hero > .hero-preview {
+    animation: preview-arrive .7s .25s cubic-bezier(.16,1,.3,1) both;
+  }
+
+  .camera-reveals > div::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--panel);
+    animation: camera-unveil .8s cubic-bezier(.16,1,.3,1) both;
+    animation-delay: calc(.35s + var(--camera-index) * .13s);
+  }
+}
+
+/* Slider and changing content share the existing column alignment. */
+.robot-panels {
+  position: relative;
+  display: flow-root;
+  margin-left: 174px;
+}
+
+.robot-panels > [role="tabpanel"] {
+  display: flow-root;
+}
+
+.robot-panels.is-changing {
+  overflow: hidden;
+}
+
+.panel-ghost {
+  position: absolute;
+  inset: 0 0 auto;
+  pointer-events: none;
+}
+
+.cinematic .robot-tabs {
+  position: relative;
+  isolation: isolate;
+}
+
+.cinematic .robot-tabs::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--tab-width, 0px);
+  transform: translateX(var(--tab-x, 0px));
+  border-bottom: 2px solid var(--accent);
+  border-radius: 8px 8px 0 0;
+  background: var(--panel);
+  transition: transform .4s cubic-bezier(.16,1,.3,1), width .4s cubic-bezier(.16,1,.3,1);
+  z-index: -1;
+}
+
+.cinematic .robot-tabs button[aria-selected="true"] {
+  background: transparent;
+  border-bottom-color: transparent;
+}
+
+@media(max-width:900px) {
+  .robot-panels { margin-left: 0; }
+}
+
+@media(max-width:600px) {
+  .hero .brand-display { font-size: clamp(60px,20.5vw,104px); }
+  .hero-preview { margin-block: 24px 30px; }
+  .hero-preview-topline { font-size: 8px; letter-spacing: .07em; }
+  #hero-playback { font-size: 10px; }
+  .hero-preview-screen { border-radius: 10px; }
+  .camera-reveals span { bottom: 4px; left: 4px; padding: 3px 4px; font-size: 6px; }
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .cinematic .hero .brand-display,
+  .cinematic .hero > .hero-preview { animation: none; }
+  .cinematic .robot-tabs::before { transition: none; }
+}

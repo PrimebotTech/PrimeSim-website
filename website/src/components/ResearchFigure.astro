@@ -1,0 +1,19 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+interface Props { file: string; alt: string; caption: string; priority?: boolean; strip?: boolean; maxWidth?: number; surface?: 'paper'; pdf?: string; }
+const { file, alt, caption, priority = false, strip = false, maxWidth, surface, pdf } = Astro.props;
+const images = import.meta.glob<{ default: ImageMetadata }>('../assets/research/*.{png,jpg,jpeg}', { eager: true });
+const source = images[`../assets/research/${file}`]?.default;
+// Never upscale past the file's own pixel width: a diagram shown wider than its
+// native resolution reads as blurry, and no amount of WebP quality fixes that.
+const cap = maxWidth ?? (source ? Math.min(source.width, 1800) : 1800);
+---
+<figure class:list={['research-figure', { strip, 'paper-figure': surface === 'paper' }]} style={`--fig-max:${cap}px`}>
+  {source ? <a class="image-link" href={source.src} target="_blank" rel="noopener" aria-label={`Open full-size image: ${alt}`}>
+    <div class="image-scroll" tabindex="0" role="region" aria-label={alt}>
+      <Image src={source} alt={alt} format="webp" quality={88} width={cap} loading={priority ? 'eager' : 'lazy'} fetchpriority={priority ? 'high' : 'auto'} />
+    </div>
+  </a> : <div class="placeholder">Figure pending · {file}</div>}
+  <figcaption><span>{caption}</span><span class="figure-links">{pdf && <a class="figure-pdf" href={pdf} target="_blank" rel="noopener">Original PDF ↗</a>}<span class="figure-action">{source ? 'Open full size ↗' : 'Asset unavailable'}</span></span></figcaption>
+</figure>

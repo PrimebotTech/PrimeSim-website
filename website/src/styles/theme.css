@@ -1,0 +1,205 @@
+/* Color mode overrides follow the shared layout and motion styles. */
+.site-header nav {
+  margin-left: auto;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+
+.theme-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
+.theme-moon, .theme-label-dark,
+[data-theme="light"] .theme-sun, [data-theme="light"] .theme-label-light {
+  display: none;
+}
+
+[data-theme="light"] .theme-moon, [data-theme="light"] .theme-label-dark {
+  display: inline;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f7f2;
+  --panel: #edf0e6;
+  --text: #20281b;
+  --body: #35402e;
+  --muted: #56624c;
+  --line: #ced5c3;
+  --accent: #486320;
+}
+
+[data-theme="light"] body {
+  background:
+    radial-gradient(900px 520px at 50% -80px, rgba(125,153,72,.14), transparent 70%),
+    linear-gradient(180deg, #f0f3e9 0, var(--bg) 620px);
+}
+
+[data-theme="light"] .site-header {
+  background: rgba(246,247,242,.88);
+}
+
+[data-theme="light"] .site-header.is-scrolled {
+  background: rgba(246,247,242,.96);
+}
+
+[data-theme="light"] .hero::before {
+  background: radial-gradient(ellipse at center, rgba(125,153,72,.12), transparent 68%);
+}
+
+[data-theme="light"] .brand-display>span:not(.title-dot) {
+  background-image: linear-gradient(105deg, #334a19 10%, #5d772f 52%, #83994f 100%);
+}
+
+[data-theme="light"] .note,
+[data-theme="light"] .barchart-value {
+  color: var(--body);
+}
+
+[data-theme="light"] .resources a.primary,
+[data-theme="light"] .resources a.primary span {
+  color: #fff;
+}
+
+[data-theme="light"] .resources a.primary {
+  box-shadow: 0 12px 34px rgba(72,99,32,.14);
+}
+
+[data-theme="light"] .resources a.primary:hover {
+  background: #385019;
+  border-color: #385019;
+}
+
+[data-theme="light"] .metrics>div,
+[data-theme="light"] .metrics>div+div {
+  background: linear-gradient(145deg, #fff, #eef1e7);
+}
+
+[data-theme="light"] .curriculum article,
+[data-theme="light"] .limits-grid article,
+[data-theme="light"] .pdf-links a,
+[data-theme="light"] .table-scroll {
+  background: rgba(255,255,255,.7);
+}
+
+[data-theme="light"] .curriculum article:hover,
+[data-theme="light"] .limits-grid article:hover,
+[data-theme="light"] .pdf-links a:hover {
+  background: #edf2e3;
+  border-color: #94a777;
+}
+
+[data-theme="light"] .image-link,
+[data-theme="light"] .clip {
+  background: #fff;
+}
+
+[data-theme="light"] .image-link:hover,
+[data-theme="light"] .resources a:hover,
+[data-theme="light"] .clip:hover {
+  border-color: #94a777;
+}
+
+[data-theme="light"] .hero-visual .image-link {
+  box-shadow: 0 24px 70px rgba(48,65,30,.12), 0 0 0 1px rgba(48,65,30,.06);
+}
+
+[data-theme="light"] .image-link:hover,
+[data-theme="light"] .clip:hover {
+  box-shadow: 0 24px 70px rgba(48,65,30,.18);
+}
+
+[data-theme="light"] tr.highlighted {
+  background: #e7eedb;
+}
+
+[data-theme="light"] thead th,
+[data-theme="light"] tbody tr:last-child>* {
+  border-color: #9caa8c;
+}
+
+[data-theme="light"] tbody tr:not(.highlighted):hover>* {
+  background: #f0f4e9;
+}
+
+[data-theme="light"] .barchart-row {
+  border-bottom-color: var(--line);
+}
+
+[data-theme="light"] .barchart-row:hover {
+  background: #edf2e5;
+}
+
+[data-theme="light"] .barchart-track {
+  background: #e3e9da;
+}
+
+[data-theme="light"] .barchart-track i {
+  background: #8b9c75;
+}
+
+[data-theme="light"] .barchart-row:not(.hero):hover .barchart-track i {
+  background: #687e4c;
+}
+
+[data-theme="light"] .barchart-row.hero .barchart-track i {
+  background: var(--accent);
+}
+
+[data-theme="light"] .barchart-row.hero .barchart-value {
+  color: var(--accent);
+}
+
+[data-theme="light"] pre {
+  background: #edf1e6;
+  color: #354728;
+}
+
+[data-theme="light"] dialog#lightbox {
+  background: rgba(246,247,242,.98);
+}
+
+[data-theme="light"] dialog#lightbox::backdrop {
+  background: rgba(41,50,32,.6);
+}
+
+[data-theme="light"] .lb-btn {
+  background: rgba(237,240,230,.96);
+}
+
+@media(max-width:600px) {
+  .theme-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    margin-left: auto;
+  }
+
+  [data-theme] .theme-toggle span {
+    display: none;
+  }
+
+  [data-theme="light"] .strip .image-link::after {
+    background: linear-gradient(90deg, transparent, #fff);
+  }
+}

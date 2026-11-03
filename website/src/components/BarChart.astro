@@ -1,0 +1,36 @@
+---
+interface Row {
+  label: string;
+  value: number;
+  /** Optional rounded label; bar length still uses the measured value. */
+  displayValue?: string;
+  /** Renders in the accent colour and bolder weight. */
+  hero?: boolean;
+  /** Free-form suffix shown after the number, e.g. " · best". */
+  note?: string;
+}
+interface Props {
+  label: string;
+  rows: Row[];
+  max?: number;
+  unit?: string;
+  decimals?: number;
+  /** Section label above the bars, e.g. "Action-conditioned". */
+  group?: string;
+}
+const { label, rows, max, unit = '', decimals = 2, group } = Astro.props;
+const top = max ?? Math.max(...rows.map(r => r.value)) * 1.06;
+const fmt = (v: number) => v.toFixed(decimals);
+---
+<div class="barchart" role="img" aria-label={label}>
+  {group && <p class="barchart-group">{group}</p>}
+  {rows.map(r => (
+    <div class:list={['barchart-row', { hero: r.hero }]}>
+      <span class="barchart-label">{r.label}</span>
+      <span class="barchart-track">
+        <i style={`width:${(100 * r.value / top).toFixed(2)}%`} />
+      </span>
+      <span class="barchart-value">{r.displayValue ?? fmt(r.value)}<em>{unit}{r.note ?? ''}</em></span>
+    </div>
+  ))}
+</div>
