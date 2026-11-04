@@ -61,12 +61,14 @@ const counterfactualClips = [1, 2, 3, 4, 5].map(n => {
   const id = `cf-${String(n).padStart(2, '0')}`;
   return { id, src: `${base}videos/counterfactual/${id}.mp4`, poster: `${base}videos/counterfactual/${id}.webp`, label: `Counterfactual ${String(n).padStart(2, '0')}` };
 });
-const citation = `% Provisional BibTeX: publication year, venue and URL are not confirmed.
-% The doubled braces around {PrimeSim} stop BibTeX styles from lowercasing it.
+const citation = `% The doubled braces around {PrimeSim} stop BibTeX styles from lowercasing it.
 @misc{primesim,
   title = {{PrimeSim}: A Generalist World Model Simulator from Large-Scale Cross-Embodiment Demonstrations},
   author = {Davies, Travis and Ma, Wentao and Guo, Lihao and Ma, Tengfei and Chang, Xiaowen and Xu, Jiafeng and Wang, Shilong and Deng, Yiqi and He, Shaowen and Li, Xiaoqi and Zhu, Qian and Cheng, Ran and Dong, Hao},
-  note = {Publication details pending}
+  year = {2026},
+  eprint = {2611.04870},
+  archivePrefix = {arXiv},
+  url = {https://arxiv.org/abs/2611.04870}
 }`;
 ---
 <!doctype html>
@@ -130,6 +132,8 @@ const citation = `% Provisional BibTeX: publication year, venue and URL are not 
   <meta name="citation_title" content={paperTitle} />
   {citationAuthors.map(a => <meta name="citation_author" content={a} />)}
   <meta name="citation_publication_date" content="2026" />
+  <meta name="citation_arxiv_id" content="2611.04870" />
+  <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2611.04870" />
   <meta name="citation_fulltext_html_url" content={site} />
   <meta name="citation_language" content="en" />
 
@@ -155,12 +159,12 @@ const citation = `% Provisional BibTeX: publication year, venue and URL are not 
   <p class="affiliations">¹ PrimeBot Research &nbsp; ² Southeast University &nbsp; ³ Shanghai Jiao Tong University<br />⁴ The Chinese University of Hong Kong &nbsp; ⁵ University of Chinese Academy of Sciences &nbsp; ⁶ Beihang University<br />⁷ Peking University &nbsp; ⁸ Shanghai Innovation Institute</p>
   <p class="correspondence">Correspondence: <a href="mailto:travisdavies@qiyuan-robot.com">travisdavies@qiyuan-robot.com</a></p>
   <div class="resources">
-    <span class="unavailable-resource" aria-label="arXiv link pending">arXiv <small>Pending</small></span>
+    <a class="primary" href="https://arxiv.org/abs/2611.04870">arXiv <span>Paper</span></a>
     <span class="unavailable-resource" aria-label="Code link pending">Code <small>Pending</small></span>
     <span class="unavailable-resource" aria-label="Weights link pending">Weights <small>Pending</small></span>
     <a href="#citation">BibTeX <span>↗</span></a>
   </div>
-  <p class="release-note">arXiv, code and weights links will be added at release.</p>
+  <p class="release-note">Code and weights links will be added at release.</p>
   <a class="explore-link" href="#overview"><span>Explore the research</span><span aria-hidden="true">↓</span></a>
 </section>
 <section class="hero-visual wide" id="overview" aria-label="PrimeSim overview">
@@ -179,7 +183,7 @@ const citation = `% Provisional BibTeX: publication year, venue and URL are not 
 <section class="section abstract" id="abstract" aria-labelledby="abstract-label">
   <div class="section-heading"><span class="section-number" id="abstract-label">ABSTRACT</span></div>
   <div class="abstract-body">{abstract.map(p => <p>{p}</p>)}</div>
-  <p class="abstract-meta">PrimeBot Research · 2026 · Full paper pending on arXiv · <a href="#citation">BibTeX</a></p>
+  <p class="abstract-meta">PrimeBot Research · 2026 · <a href="https://arxiv.org/abs/2611.04870">arXiv:2611.04870</a> · <a href="#citation">BibTeX</a></p>
 </section>
 <section class="section showcase" id="showcase">
   <div class="section-heading"><span class="section-number">00 / SHOWCASE</span><h2>Generated rollouts.<br /><em>Action in, video out.</em></h2></div>
@@ -342,8 +346,7 @@ const citation = `% Provisional BibTeX: publication year, venue and URL are not 
 </section>
 <section class="section citation" id="citation">
   <div class="section-heading"><span class="section-number">03 / CITE</span><h2>BibTeX</h2></div>
-  <p>Provisional citation. Publication year, venue and paper URL are pending confirmation.</p>
-  <div class="code-top"><span>PRIMESIM.BIB · PROVISIONAL</span><button id="copy-citation" type="button">Copy BibTeX ↗</button></div><pre><code id="bibtex">{citation}</code></pre><p id="copy-status" role="status" aria-live="polite"></p>
+  <div class="code-top"><span>PRIMESIM.BIB</span><button id="copy-citation" type="button">Copy BibTeX ↗</button></div><pre><code id="bibtex">{citation}</code></pre><p id="copy-status" role="status" aria-live="polite"></p>
 </section>
 </main>
 <dialog id="lightbox" aria-label="Figure viewer">
